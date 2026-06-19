@@ -9,6 +9,8 @@ public sealed class OverlayManager
     private readonly List<OverlayForm> _forms = new();
     private readonly System.Windows.Forms.Timer _elapsedTimer;
     private DateTime _startUtc;
+    private Settings _settings = new();
+    private DateTime _startLocal;
 
     public bool IsActive { get; private set; }
 
@@ -23,6 +25,8 @@ public sealed class OverlayManager
     {
         if (IsActive) return;
         _startUtc = DateTime.UtcNow;
+        _settings = settings;
+        _startLocal = DateTime.Now;
 
         foreach (var screen in Screen.AllScreens)
         {
@@ -53,6 +57,11 @@ public sealed class OverlayManager
     {
         var elapsed = DateTime.UtcNow - _startUtc;
         foreach (var form in _forms) form.UpdateElapsed(elapsed);
+
+        if (StopPolicy.ShouldAutoStop(_settings, _startLocal, DateTime.Now))
+        {
+            DismissAll();
+        }
     }
 
     private void DismissAll()
