@@ -18,6 +18,14 @@ public sealed class Settings
     public bool[] WorkDays { get; set; } = { false, true, true, true, true, true, false };
     public bool ShowClock { get; set; }
     public string CenterMessage { get; set; } = "";
+    public bool AnalogClock { get; set; }
+    public int ClockFontSize { get; set; } = 64;
+    public int MessageFontSize { get; set; } = 24;
+    public int CenterColorArgb { get; set; } = unchecked((int)0xFFA0A0A0);
+    public bool CenterBold { get; set; }
+    public bool ClockSeconds { get; set; }
+    public bool Clock12Hour { get; set; }
+    public bool ShowDate { get; set; }
 
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
 
