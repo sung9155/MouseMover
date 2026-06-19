@@ -117,7 +117,7 @@ public sealed class TrayAppContext : ApplicationContext
     private void StartKeepAwakeOnly()
     {
         if (_overlay.IsActive || _keepAwakeOnlyActive) return;
-        _kaoSettings = _settings;
+        _kaoSettings = _settings.Clone();   // 세션 시작 시점 설정 스냅샷 (이후 설정 변경 영향 없음)
         _kaoStartLocal = DateTime.Now;
         _keepAwake.JiggleSeconds = _kaoSettings.JiggleSeconds;
         _keepAwake.Start();
