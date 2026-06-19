@@ -30,7 +30,7 @@ public sealed class OverlayManager
 
         foreach (var screen in Screen.AllScreens)
         {
-            var form = new OverlayForm(screen.Bounds, settings, DismissAll);
+            var form = new OverlayForm(screen.Bounds, settings, _startLocal, DismissAll);
             _forms.Add(form);
             form.Show();
         }

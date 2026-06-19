@@ -9,12 +9,14 @@ public sealed class OverlayForm : Form
     private readonly Label _label;
     private readonly Font _font;
     private readonly Settings _settings;
+    private readonly DateTime _startLocal;
     private bool _dismissed;
 
-    public OverlayForm(Rectangle bounds, Settings settings, Action onDismiss)
+    public OverlayForm(Rectangle bounds, Settings settings, DateTime startLocal, Action onDismiss)
     {
         _onDismiss = onDismiss;
         _settings = settings;
+        _startLocal = startLocal;
 
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
@@ -47,9 +49,21 @@ public sealed class OverlayForm : Form
     {
         var lines = new List<string> { _settings.StatusText };
         if (_settings.ShowElapsed) lines.Add(TimeFormat.Elapsed(elapsed));
-        if (_settings.ShowDismissHint) lines.Add("아무 키나 클릭하면 해제");
+        if (_settings.ShowDismissHint) lines.Add(DismissHint(elapsed));
         _label.Text = string.Join("\n", lines);
         PositionLabel();
+    }
+
+    private string DismissHint(TimeSpan elapsed)
+    {
+        var now = _startLocal + elapsed;
+        var nextStop = StopPolicy.NextAutoStop(_settings, _startLocal);
+        if (nextStop is { } stop && stop - now > TimeSpan.Zero)
+        {
+            int remaining = Math.Max(1, (int)Math.Ceiling((stop - now).TotalMinutes));
+            return $"{stop:HH:mm} 자동 해제 예정 ({remaining}분 남음)\n아무 키나 클릭하면 해제";
+        }
+        return "아무 키나 클릭하면 해제";
     }
 
     private void PositionLabel()
