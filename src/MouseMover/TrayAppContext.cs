@@ -9,10 +9,17 @@ public sealed class TrayAppContext : ApplicationContext
     private readonly KeepAwake _keepAwake;
     private readonly OverlayManager _overlay;
     private readonly ToolStripMenuItem _startItem;
+    private readonly ToolStripMenuItem _autoOffMenu;
     private readonly Icon _icon;
     private readonly bool _ownsIcon;
     private bool _disposed;
     private Settings _settings = Settings.Load();
+
+    // 트레이 "자동 종료" 빠른 시작 프리셋 (분). 타이머 없는 시작은 "덮개 시작"이 담당.
+    private static readonly (string Label, int Minutes)[] AutoOffPresets =
+    {
+        ("30분", 30), ("1시간", 60), ("2시간", 120), ("4시간", 240)
+    };
 
     public TrayAppContext()
     {
@@ -25,12 +32,22 @@ public sealed class TrayAppContext : ApplicationContext
 
         var settingsItem = new ToolStripMenuItem("설정...", null, (_, _) => OpenSettings());
         _startItem = new ToolStripMenuItem("덮개 시작", null, (_, _) => StartCover());
+
+        _autoOffMenu = new ToolStripMenuItem("자동 종료");
+        foreach (var preset in AutoOffPresets)
+        {
+            int minutes = preset.Minutes;
+            _autoOffMenu.DropDownItems.Add(
+                new ToolStripMenuItem(preset.Label, null, (_, _) => StartCoverWith(minutes)));
+        }
+
         var exitItem = new ToolStripMenuItem("종료", null, (_, _) => ExitApp());
 
         var menu = new ContextMenuStrip();
         menu.Items.Add(settingsItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_startItem);
+        menu.Items.Add(_autoOffMenu);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(exitItem);
 
@@ -47,19 +64,32 @@ public sealed class TrayAppContext : ApplicationContext
         _tray.DoubleClick += (_, _) => StartCover();
     }
 
-    private void StartCover()
+    // "덮개 시작" — 저장된 설정 그대로 사용(타이머 없음).
+    private void StartCover() => StartCover(_settings);
+
+    // 트레이 "자동 종료 ▸ N" — 원샷: 저장 설정 복제 + AutoOffMinutes만 덮어써 시작(저장 안 함).
+    private void StartCoverWith(int autoOffMinutes)
+    {
+        var effective = _settings.Clone();
+        effective.AutoOffMinutes = autoOffMinutes;
+        StartCover(effective);
+    }
+
+    private void StartCover(Settings effective)
     {
         if (_overlay.IsActive) return;
-        _keepAwake.JiggleSeconds = _settings.JiggleSeconds;
+        _keepAwake.JiggleSeconds = effective.JiggleSeconds;
         _keepAwake.Start();
-        _overlay.Start(_settings);
+        _overlay.Start(effective);
         _startItem.Enabled = false;
+        _autoOffMenu.Enabled = false;
     }
 
     private void OnDismissed()
     {
         _keepAwake.Stop();
         _startItem.Enabled = true;
+        _autoOffMenu.Enabled = true;
     }
 
     private void OpenSettings()
