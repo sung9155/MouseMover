@@ -5,6 +5,7 @@ public sealed class KeepAwake : IDisposable
     private readonly IInputSender _sender;
     private readonly Action<uint> _setExecutionState;
     private readonly System.Windows.Forms.Timer _timer;
+    private readonly Func<TimeSpan> _idleTime;
 
     public bool IsRunning { get; private set; }
 
@@ -14,12 +15,20 @@ public sealed class KeepAwake : IDisposable
         set => _timer.Interval = Math.Max(1, value) * 1000;
     }
 
-    public KeepAwake(IInputSender sender, Action<uint> setExecutionState, int jiggleSeconds = 45)
+    public KeepAwake(IInputSender sender, Action<uint> setExecutionState, int jiggleSeconds = 45, Func<TimeSpan>? idleTime = null)
     {
         _sender = sender;
         _setExecutionState = setExecutionState;
+        _idleTime = idleTime ?? Win32IdleTime.Get;
         _timer = new System.Windows.Forms.Timer { Interval = jiggleSeconds * 1000 };
-        _timer.Tick += (_, _) => _sender.Jiggle();
+        _timer.Tick += (_, _) => Tick();
+    }
+
+    // 유휴 시간이 지글 주기 이상일 때만 지글 (사용자가 활동 중이면 건너뜀)
+    private void Tick()
+    {
+        if (_idleTime() >= TimeSpan.FromSeconds(JiggleSeconds))
+            _sender.Jiggle();
     }
 
     public void Start()
@@ -41,8 +50,8 @@ public sealed class KeepAwake : IDisposable
         IsRunning = false;
     }
 
-    // 테스트용: 타이머 콜백과 동일하게 한 번 지글
-    public void TickForTest() => _sender.Jiggle();
+    // 테스트용: 타이머 콜백과 동일한 유휴 게이트를 거쳐 한 번 처리
+    public void TickForTest() => Tick();
 
     public void Dispose()
     {
