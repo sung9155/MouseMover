@@ -132,6 +132,7 @@ public sealed class SettingsForm : Form
     private void Commit()
     {
         int startMin = _workStart.Value.Hour * 60 + _workStart.Value.Minute;
+        startMin = Math.Min(startMin, 1438);
         int endMin = _workEnd.Value.Hour * 60 + _workEnd.Value.Minute;
         if (endMin <= startMin) endMin = Math.Min(startMin + 1, 1439);
 

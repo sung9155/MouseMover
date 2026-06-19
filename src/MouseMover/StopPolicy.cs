@@ -24,7 +24,9 @@ public static class StopPolicy
     public static bool IsWorkTime(Settings s, DateTime t)
     {
         if (s.WorkStartMinutes >= s.WorkEndMinutes) return false;
-        if (!s.WorkDays[(int)t.DayOfWeek]) return false;
+        int day = (int)t.DayOfWeek;
+        if (s.WorkDays.Length < 7 || day >= s.WorkDays.Length) return false;
+        if (!s.WorkDays[day]) return false;
         int minutes = t.Hour * 60 + t.Minute;
         return s.WorkStartMinutes <= minutes && minutes < s.WorkEndMinutes;
     }

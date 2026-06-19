@@ -97,4 +97,12 @@ public class StopPolicyTests
         var s = WorkdaySchedule();
         Assert.False(StopPolicy.IsWorkTime(s, Sun(10, 0))); // 일요일 off
     }
+
+    [Fact]
+    public void IsWorkTime_short_workdays_array_returns_false_without_throwing()
+    {
+        var s = WorkdaySchedule();
+        s.WorkDays = new[] { true, true }; // shorter than 7
+        Assert.False(StopPolicy.IsWorkTime(s, Mon(10, 0)));
+    }
 }
