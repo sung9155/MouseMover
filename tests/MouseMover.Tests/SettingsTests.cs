@@ -85,4 +85,21 @@ public class SettingsTests
         Assert.Equal(1020, back.WorkEndMinutes);
         Assert.Equal(new[] { true, false, false, false, false, false, true }, back.WorkDays);
     }
+
+    [Fact]
+    public void Display_option_defaults()
+    {
+        var s = new Settings();
+        Assert.False(s.ShowClock);
+        Assert.Equal("", s.CenterMessage);
+    }
+
+    [Fact]
+    public void Display_options_round_trip()
+    {
+        var s = new Settings { ShowClock = true, CenterMessage = "회의 중 · 16시 복귀" };
+        var back = Settings.FromJson(s.ToJson());
+        Assert.True(back.ShowClock);
+        Assert.Equal("회의 중 · 16시 복귀", back.CenterMessage);
+    }
 }

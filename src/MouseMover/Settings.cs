@@ -16,6 +16,8 @@ public sealed class Settings
     public int WorkStartMinutes { get; set; } = 540;
     public int WorkEndMinutes { get; set; } = 1080;
     public bool[] WorkDays { get; set; } = { false, true, true, true, true, true, false };
+    public bool ShowClock { get; set; }
+    public string CenterMessage { get; set; } = "";
 
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
 
