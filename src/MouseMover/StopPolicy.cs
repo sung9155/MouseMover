@@ -1,0 +1,31 @@
+namespace MouseMover;
+
+public static class StopPolicy
+{
+    public static bool ShouldAutoStop(Settings s, DateTime startLocal, DateTime nowLocal)
+    {
+        if (s.AutoOffMinutes > 0 &&
+            (nowLocal - startLocal).TotalMinutes >= s.AutoOffMinutes)
+        {
+            return true;
+        }
+
+        if (s.ScheduleEnabled &&
+            s.WorkStartMinutes < s.WorkEndMinutes &&
+            IsWorkTime(s, startLocal) &&
+            !IsWorkTime(s, nowLocal))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static bool IsWorkTime(Settings s, DateTime t)
+    {
+        if (s.WorkStartMinutes >= s.WorkEndMinutes) return false;
+        if (!s.WorkDays[(int)t.DayOfWeek]) return false;
+        int minutes = t.Hour * 60 + t.Minute;
+        return s.WorkStartMinutes <= minutes && minutes < s.WorkEndMinutes;
+    }
+}
