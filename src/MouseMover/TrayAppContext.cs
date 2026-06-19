@@ -10,10 +10,17 @@ public sealed class TrayAppContext : ApplicationContext
     private readonly OverlayManager _overlay;
     private readonly ToolStripMenuItem _startItem;
     private readonly ToolStripMenuItem _autoOffMenu;
+    private readonly ToolStripMenuItem _keepAwakeOnlyItem;
+    private readonly System.Windows.Forms.Timer _keepAwakeOnlyTimer;
     private readonly Icon _icon;
     private readonly bool _ownsIcon;
     private bool _disposed;
+    private bool _keepAwakeOnlyActive;
     private Settings _settings = Settings.Load();
+
+    // 절전방지 전용 세션(덮개 없음)용 — 시작 시점 설정/로컬시각
+    private Settings _kaoSettings = new();
+    private DateTime _kaoStartLocal;
 
     // 트레이 "자동 종료" 빠른 시작 프리셋 (분). 타이머 없는 시작은 "덮개 시작"이 담당.
     private static readonly (string Label, int Minutes)[] AutoOffPresets =
@@ -41,6 +48,15 @@ public sealed class TrayAppContext : ApplicationContext
                 new ToolStripMenuItem(preset.Label, null, (_, _) => StartCoverWith(minutes)));
         }
 
+        _keepAwakeOnlyItem = new ToolStripMenuItem("절전방지만 시작", null, (_, _) => ToggleKeepAwakeOnly());
+
+        _keepAwakeOnlyTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+        _keepAwakeOnlyTimer.Tick += (_, _) =>
+        {
+            if (StopPolicy.ShouldAutoStop(_kaoSettings, _kaoStartLocal, DateTime.Now))
+                StopKeepAwakeOnly();
+        };
+
         var exitItem = new ToolStripMenuItem("종료", null, (_, _) => ExitApp());
 
         var menu = new ContextMenuStrip();
@@ -48,6 +64,7 @@ public sealed class TrayAppContext : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_startItem);
         menu.Items.Add(_autoOffMenu);
+        menu.Items.Add(_keepAwakeOnlyItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(exitItem);
 
@@ -77,19 +94,57 @@ public sealed class TrayAppContext : ApplicationContext
 
     private void StartCover(Settings effective)
     {
-        if (_overlay.IsActive) return;
+        if (_overlay.IsActive || _keepAwakeOnlyActive) return;
         _keepAwake.JiggleSeconds = effective.JiggleSeconds;
         _keepAwake.Start();
         _overlay.Start(effective);
-        _startItem.Enabled = false;
-        _autoOffMenu.Enabled = false;
+        UpdateMenuState();
     }
 
     private void OnDismissed()
     {
         _keepAwake.Stop();
-        _startItem.Enabled = true;
-        _autoOffMenu.Enabled = true;
+        UpdateMenuState();
+    }
+
+    // 절전방지 전용 모드 — 덮개 없이 KeepAwake만. 트레이 토글로 시작/중지.
+    private void ToggleKeepAwakeOnly()
+    {
+        if (_keepAwakeOnlyActive) StopKeepAwakeOnly();
+        else StartKeepAwakeOnly();
+    }
+
+    private void StartKeepAwakeOnly()
+    {
+        if (_overlay.IsActive || _keepAwakeOnlyActive) return;
+        _kaoSettings = _settings.Clone();   // 세션 시작 시점 설정 스냅샷 (이후 설정 변경 영향 없음)
+        _kaoStartLocal = DateTime.Now;
+        _keepAwake.JiggleSeconds = _kaoSettings.JiggleSeconds;
+        _keepAwake.Start();
+        _keepAwakeOnlyTimer.Start();
+        _keepAwakeOnlyActive = true;
+        _tray.Text = "MouseMover — 절전방지 중";
+        UpdateMenuState();
+    }
+
+    private void StopKeepAwakeOnly()
+    {
+        if (!_keepAwakeOnlyActive) return;
+        _keepAwakeOnlyTimer.Stop();
+        _keepAwake.Stop();
+        _keepAwakeOnlyActive = false;
+        _tray.Text = "MouseMover — 절전방지/화면가리기";
+        UpdateMenuState();
+    }
+
+    // 덮개/절전방지전용 상호 배타에 따른 메뉴 활성/토글 텍스트 일원화.
+    private void UpdateMenuState()
+    {
+        bool idle = !_overlay.IsActive && !_keepAwakeOnlyActive;
+        _startItem.Enabled = idle;
+        _autoOffMenu.Enabled = idle;
+        _keepAwakeOnlyItem.Enabled = !_overlay.IsActive;
+        _keepAwakeOnlyItem.Text = _keepAwakeOnlyActive ? "절전방지 중지" : "절전방지만 시작";
     }
 
     private void OpenSettings()
@@ -108,6 +163,8 @@ public sealed class TrayAppContext : ApplicationContext
         if (disposing && !_disposed)
         {
             _disposed = true;
+            _keepAwakeOnlyTimer.Stop();
+            _keepAwakeOnlyTimer.Dispose();
             _overlay.Stop();
             _keepAwake.Dispose();
             _tray.Visible = false;
