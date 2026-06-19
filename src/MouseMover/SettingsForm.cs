@@ -37,7 +37,9 @@ public sealed class SettingsForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false;
         MinimizeBox = false;
-        ClientSize = new Size(380, 440);
+        // 내용 기반 자동 크기 — 고정폭에서 요일 체크박스가 잘리던 문제 방지
+        AutoSize = true;
+        AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
         _interval.Value = Math.Clamp(current.JiggleSeconds, 5, 600);
         _statusText.Text = current.StatusText;
@@ -83,13 +85,19 @@ public sealed class SettingsForm : Form
         AcceptButton = ok;
         CancelButton = cancel;
 
+        // 루트 2열 그리드 — 내용에 맞춰 자동 크기(클립 방지)
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             Padding = new Padding(12),
-            AutoSize = true
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            GrowStyle = TableLayoutPanelGrowStyle.AddRows
         };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
         layout.Controls.Add(new Label { Text = "지글 주기(초)", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
         layout.Controls.Add(_interval, 1, 0);
         layout.Controls.Add(new Label { Text = "상태 텍스트", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 1);
@@ -110,23 +118,39 @@ public sealed class SettingsForm : Form
         layout.Controls.Add(new Label { Text = "근무 종료", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 10);
         layout.Controls.Add(_workEnd, 1, 10);
 
-        var daysPanel = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false };
-        foreach (var cb in _workDays) daysPanel.Controls.Add(cb);
+        // 요일 — 7열 그리드(셀마다 체크박스). 폭이 내용에 맞춰 늘어나 잘리지 않음
+        var daysGrid = new TableLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 7,
+            RowCount = 1,
+            Margin = new Padding(0)
+        };
+        for (int i = 0; i < 7; i++)
+        {
+            daysGrid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            _workDays[i].Margin = new Padding(2, 3, 2, 3);
+            daysGrid.Controls.Add(_workDays[i], i, 0);
+        }
         layout.Controls.Add(new Label { Text = "근무 요일", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 11);
-        layout.Controls.Add(daysPanel, 1, 11);
+        layout.Controls.Add(daysGrid, 1, 11);
 
+        // 버튼 행 — 루트 마지막 행, 두 열 span, 오른쪽 정렬
         var buttons = new FlowLayoutPanel
         {
-            Dock = DockStyle.Bottom,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
             FlowDirection = FlowDirection.RightToLeft,
-            Padding = new Padding(12),
-            Height = 48
+            Anchor = AnchorStyles.Right,
+            Margin = new Padding(0, 10, 0, 0)
         };
         buttons.Controls.Add(cancel);
         buttons.Controls.Add(ok);
+        layout.Controls.Add(buttons, 0, 12);
+        layout.SetColumnSpan(buttons, 2);
 
         Controls.Add(layout);
-        Controls.Add(buttons);
     }
 
     private void Commit()
