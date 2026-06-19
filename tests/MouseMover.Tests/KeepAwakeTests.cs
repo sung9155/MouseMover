@@ -63,6 +63,18 @@ public class KeepAwakeTests
     }
 
     [Fact]
+    public void Tick_skips_when_idle_just_under_period()
+    {
+        var sender = new FakeSender();
+        var ka = new KeepAwake(sender, _ => { }, 45, () => TimeSpan.FromSeconds(44));
+        ka.Start();
+
+        ka.TickForTest();
+
+        Assert.Equal(0, sender.JiggleCount);
+    }
+
+    [Fact]
     public void Tick_jiggles_when_idle_just_past_period()
     {
         var sender = new FakeSender();
