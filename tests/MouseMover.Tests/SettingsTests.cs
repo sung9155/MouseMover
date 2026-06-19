@@ -102,4 +102,38 @@ public class SettingsTests
         Assert.True(back.ShowClock);
         Assert.Equal("회의 중 · 16시 복귀", back.CenterMessage);
     }
+
+    [Fact]
+    public void Center_customize_defaults()
+    {
+        var s = new Settings();
+        Assert.False(s.AnalogClock);
+        Assert.Equal(64, s.ClockFontSize);
+        Assert.Equal(24, s.MessageFontSize);
+        Assert.Equal(unchecked((int)0xFFA0A0A0), s.CenterColorArgb);
+        Assert.False(s.CenterBold);
+        Assert.False(s.ClockSeconds);
+        Assert.False(s.Clock12Hour);
+        Assert.False(s.ShowDate);
+    }
+
+    [Fact]
+    public void Center_customize_round_trip()
+    {
+        var s = new Settings
+        {
+            AnalogClock = true, ClockFontSize = 120, MessageFontSize = 40,
+            CenterColorArgb = unchecked((int)0xFF00FF00), CenterBold = true,
+            ClockSeconds = true, Clock12Hour = true, ShowDate = true
+        };
+        var b = Settings.FromJson(s.ToJson());
+        Assert.True(b.AnalogClock);
+        Assert.Equal(120, b.ClockFontSize);
+        Assert.Equal(40, b.MessageFontSize);
+        Assert.Equal(unchecked((int)0xFF00FF00), b.CenterColorArgb);
+        Assert.True(b.CenterBold);
+        Assert.True(b.ClockSeconds);
+        Assert.True(b.Clock12Hour);
+        Assert.True(b.ShowDate);
+    }
 }
