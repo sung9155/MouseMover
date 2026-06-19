@@ -20,6 +20,9 @@ public sealed class SettingsForm : Form
     private readonly DateTimePicker _workEnd = new() { Format = DateTimePickerFormat.Time, ShowUpDown = true, Width = 100 };
     private readonly CheckBox[] _workDays = new CheckBox[7];
 
+    private readonly CheckBox _showClock = new() { Text = "덮개 중앙 시계 표시", AutoSize = true };
+    private readonly TextBox _centerMessage = new() { Width = 220 };
+
     private static readonly (string Label, int Minutes)[] AutoOffPresets =
     {
         ("없음", 0), ("30분", 30), ("1시간", 60), ("2시간", 120), ("4시간", 240)
@@ -63,6 +66,9 @@ public sealed class SettingsForm : Form
         foreach (var p in AutoOffPresets) _autoOff.Items.Add(p.Label);
         int presetIndex = Array.FindIndex(AutoOffPresets, p => p.Minutes == current.AutoOffMinutes);
         _autoOff.SelectedIndex = presetIndex >= 0 ? presetIndex : 0;
+
+        _showClock.Checked = current.ShowClock;
+        _centerMessage.Text = current.CenterMessage;
 
         _scheduleEnabled.Checked = current.ScheduleEnabled;
         var today = DateTime.Today;
@@ -147,7 +153,11 @@ public sealed class SettingsForm : Form
         };
         buttons.Controls.Add(cancel);
         buttons.Controls.Add(ok);
-        layout.Controls.Add(buttons, 0, 12);
+        layout.Controls.Add(_showClock, 1, 12);
+        layout.Controls.Add(new Label { Text = "덮개 메시지", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 13);
+        layout.Controls.Add(_centerMessage, 1, 13);
+
+        layout.Controls.Add(buttons, 0, 14);
         layout.SetColumnSpan(buttons, 2);
 
         Controls.Add(layout);
@@ -173,7 +183,9 @@ public sealed class SettingsForm : Form
             ScheduleEnabled = _scheduleEnabled.Checked,
             WorkStartMinutes = startMin,
             WorkEndMinutes = endMin,
-            WorkDays = Array.ConvertAll(_workDays, cb => cb.Checked)
+            WorkDays = Array.ConvertAll(_workDays, cb => cb.Checked),
+            ShowClock = _showClock.Checked,
+            CenterMessage = _centerMessage.Text
         };
     }
 }

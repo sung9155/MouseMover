@@ -51,11 +51,7 @@ public sealed class TrayAppContext : ApplicationContext
         _keepAwakeOnlyItem = new ToolStripMenuItem("절전방지만 시작", null, (_, _) => ToggleKeepAwakeOnly());
 
         _keepAwakeOnlyTimer = new System.Windows.Forms.Timer { Interval = 1000 };
-        _keepAwakeOnlyTimer.Tick += (_, _) =>
-        {
-            if (StopPolicy.ShouldAutoStop(_kaoSettings, _kaoStartLocal, DateTime.Now))
-                StopKeepAwakeOnly();
-        };
+        _keepAwakeOnlyTimer.Tick += OnKeepAwakeOnlyTick;
 
         var exitItem = new ToolStripMenuItem("종료", null, (_, _) => ExitApp());
 
@@ -123,7 +119,7 @@ public sealed class TrayAppContext : ApplicationContext
         _keepAwake.Start();
         _keepAwakeOnlyTimer.Start();
         _keepAwakeOnlyActive = true;
-        _tray.Text = "MouseMover — 절전방지 중";
+        _tray.Text = KeepAwakeTooltip();
         UpdateMenuState();
     }
 
@@ -135,6 +131,25 @@ public sealed class TrayAppContext : ApplicationContext
         _keepAwakeOnlyActive = false;
         _tray.Text = "MouseMover — 절전방지/화면가리기";
         UpdateMenuState();
+    }
+
+    // 명명 핸들러 — 인스턴스 메서드라 _tray가 non-null로 분석됨(ctor 내 람다의 CS8602 회피).
+    private void OnKeepAwakeOnlyTick(object? sender, EventArgs e)
+    {
+        if (StopPolicy.ShouldAutoStop(_kaoSettings, _kaoStartLocal, DateTime.Now))
+        {
+            StopKeepAwakeOnly();
+            return;
+        }
+        _tray.Text = KeepAwakeTooltip();
+    }
+
+    private string KeepAwakeTooltip()
+    {
+        var next = StopPolicy.NextAutoStop(_kaoSettings, _kaoStartLocal);
+        return next is { } t
+            ? $"MouseMover — 절전방지 중 ({t:HH:mm}까지)"
+            : "MouseMover — 절전방지 중";
     }
 
     // 덮개/절전방지전용 상호 배타에 따른 메뉴 활성/토글 텍스트 일원화.
