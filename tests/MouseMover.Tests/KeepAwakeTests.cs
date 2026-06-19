@@ -42,7 +42,7 @@ public class KeepAwakeTests
     public void Tick_jiggles_when_idle_at_period()
     {
         var sender = new FakeSender();
-        var ka = new KeepAwake(sender, _ => { }, 45, () => TimeSpan.FromHours(1));
+        var ka = new KeepAwake(sender, _ => { }, 45, () => TimeSpan.FromSeconds(45));
         ka.Start();
 
         ka.TickForTest();
