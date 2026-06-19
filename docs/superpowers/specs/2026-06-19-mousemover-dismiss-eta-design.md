@@ -26,7 +26,7 @@
 `src/MouseMover/StopPolicy.cs`에 추가:
 
 ```csharp
-public static DateTime? NextAutoStop(Settings s, DateTime startLocal, DateTime nowLocal)
+public static DateTime? NextAutoStop(Settings s, DateTime startLocal)
 ```
 
 - 후보 1 — 자동 종료 타이머: `s.AutoOffMinutes > 0` → `startLocal.AddMinutes(s.AutoOffMinutes)`.
@@ -34,8 +34,8 @@ public static DateTime? NextAutoStop(Settings s, DateTime startLocal, DateTime n
   IsWorkTime(s, startLocal)` → `startLocal.Date.AddMinutes(s.WorkEndMinutes)` (시작한 날의
   퇴근 시각).
 - 두 후보 중 **이른 시각**(min) 반환. 후보가 하나도 없으면 `null`.
-- `nowLocal`은 시그니처 일관성을 위해 받되 현재 후보 계산엔 사용하지 않는다(예정
-  시각은 시작 시점으로 결정됨; 남은 시간은 호출자가 `nextStop - nowLocal`로 계산).
+- 예정 시각은 시작 시점으로 결정되므로 현재 시각은 인자로 받지 않는다(남은 시간은
+  호출자가 `nextStop - now`로 계산).
 - 기존 `ShouldAutoStop`와 동일 경계 규칙(자동종료 `>=`, 스케줄 퇴근 분 도달 시 해제)을
   공유한다. `ShouldAutoStop`는 변경하지 않는다.
 
@@ -44,7 +44,7 @@ public static DateTime? NextAutoStop(Settings s, DateTime startLocal, DateTime n
 - `OverlayForm` 생성자에 `DateTime startLocal`을 추가로 받아 필드 저장.
 - `UpdateElapsed(TimeSpan elapsed)`에서:
   - `nowLocal = _startLocal + elapsed`
-  - `nextStop = StopPolicy.NextAutoStop(_settings, _startLocal, nowLocal)`
+  - `nextStop = StopPolicy.NextAutoStop(_settings, _startLocal)`
   - 안내 줄 구성(`ShowDismissHint`가 켜진 경우만):
     - `nextStop != null && (nextStop - nowLocal) > TimeSpan.Zero`:
       - 줄1: `$"{nextStop:HH:mm} 자동 해제 예정 ({remaining}분 남음)"`,
