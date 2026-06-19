@@ -11,6 +11,7 @@ public sealed class TrayAppContext : ApplicationContext
     private readonly ToolStripMenuItem _startItem;
     private readonly Icon _icon;
     private bool _disposed;
+    private Settings _settings = Settings.Load();
 
     public TrayAppContext()
     {
@@ -19,10 +20,15 @@ public sealed class TrayAppContext : ApplicationContext
             flags => NativeMethods.SetThreadExecutionState(flags));
         _overlay = new OverlayManager(OnDismissed);
 
+        StartupRegistration.Apply(_settings.RunAtStartup, Application.ExecutablePath);
+
+        var settingsItem = new ToolStripMenuItem("설정...", null, (_, _) => OpenSettings());
         _startItem = new ToolStripMenuItem("덮개 시작", null, (_, _) => StartCover());
         var exitItem = new ToolStripMenuItem("종료", null, (_, _) => ExitApp());
 
         var menu = new ContextMenuStrip();
+        menu.Items.Add(settingsItem);
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_startItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(exitItem);
@@ -47,8 +53,9 @@ public sealed class TrayAppContext : ApplicationContext
     private void StartCover()
     {
         if (_overlay.IsActive) return;
+        _keepAwake.JiggleSeconds = _settings.JiggleSeconds;
         _keepAwake.Start();
-        _overlay.Start();
+        _overlay.Start(_settings);
         _startItem.Enabled = false;
     }
 
@@ -56,6 +63,17 @@ public sealed class TrayAppContext : ApplicationContext
     {
         _keepAwake.Stop();
         _startItem.Enabled = true;
+    }
+
+    private void OpenSettings()
+    {
+        using var form = new SettingsForm(_settings);
+        if (form.ShowDialog() == DialogResult.OK)
+        {
+            _settings = form.Result;
+            _settings.Save();
+            StartupRegistration.Apply(_settings.RunAtStartup, Application.ExecutablePath);
+        }
     }
 
     protected override void Dispose(bool disposing)

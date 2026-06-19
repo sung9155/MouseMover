@@ -8,6 +8,12 @@ public sealed class KeepAwake : IDisposable
 
     public bool IsRunning { get; private set; }
 
+    public int JiggleSeconds
+    {
+        get => _timer.Interval / 1000;
+        set => _timer.Interval = Math.Max(1, value) * 1000;
+    }
+
     public KeepAwake(IInputSender sender, Action<uint> setExecutionState, int jiggleSeconds = 45)
     {
         _sender = sender;

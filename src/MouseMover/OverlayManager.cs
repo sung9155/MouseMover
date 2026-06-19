@@ -19,14 +19,14 @@ public sealed class OverlayManager
         _elapsedTimer.Tick += (_, _) => RefreshElapsed();
     }
 
-    public void Start()
+    public void Start(Settings settings)
     {
         if (IsActive) return;
         _startUtc = DateTime.UtcNow;
 
         foreach (var screen in Screen.AllScreens)
         {
-            var form = new OverlayForm(screen.Bounds, DismissAll);
+            var form = new OverlayForm(screen.Bounds, settings, DismissAll);
             _forms.Add(form);
             form.Show();
         }

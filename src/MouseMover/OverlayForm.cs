@@ -8,11 +8,13 @@ public sealed class OverlayForm : Form
     private readonly Action _onDismiss;
     private readonly Label _label;
     private readonly Font _font;
+    private readonly Settings _settings;
     private bool _dismissed;
 
-    public OverlayForm(Rectangle bounds, Action onDismiss)
+    public OverlayForm(Rectangle bounds, Settings settings, Action onDismiss)
     {
         _onDismiss = onDismiss;
+        _settings = settings;
 
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
@@ -24,11 +26,11 @@ public sealed class OverlayForm : Form
         KeyPreview = true;
         DoubleBuffered = true;
 
-        _font = new Font("Segoe UI", 11f, FontStyle.Regular);
+        _font = new Font("Segoe UI", settings.LabelFontSize, FontStyle.Regular);
         _label = new Label
         {
             AutoSize = true,
-            ForeColor = Color.FromArgb(160, 160, 160),
+            ForeColor = Color.FromArgb(settings.LabelColorArgb),
             BackColor = Color.Black,
             Font = _font,
             TextAlign = ContentAlignment.BottomRight
@@ -43,10 +45,10 @@ public sealed class OverlayForm : Form
 
     public void UpdateElapsed(TimeSpan elapsed)
     {
-        _label.Text =
-            "절전방지 중\n" +
-            TimeFormat.Elapsed(elapsed) + "\n" +
-            "아무 키나 클릭하면 해제";
+        var lines = new List<string> { _settings.StatusText };
+        if (_settings.ShowElapsed) lines.Add(TimeFormat.Elapsed(elapsed));
+        if (_settings.ShowDismissHint) lines.Add("아무 키나 클릭하면 해제");
+        _label.Text = string.Join("\n", lines);
         PositionLabel();
     }
 

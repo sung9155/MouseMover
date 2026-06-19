@@ -60,4 +60,19 @@ public class KeepAwakeTests
         ka.Stop(); // 두 번째 호출 예외 없어야 함
         Assert.False(ka.IsRunning);
     }
+
+    [Fact]
+    public void JiggleSeconds_get_set_round_trips()
+    {
+        var ka = new KeepAwake(new FakeSender(), _ => { });
+        ka.JiggleSeconds = 30;
+        Assert.Equal(30, ka.JiggleSeconds);
+    }
+
+    [Fact]
+    public void JiggleSeconds_default_is_45()
+    {
+        var ka = new KeepAwake(new FakeSender(), _ => { });
+        Assert.Equal(45, ka.JiggleSeconds);
+    }
 }
