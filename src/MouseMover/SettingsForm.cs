@@ -16,6 +16,7 @@ public sealed class SettingsForm : Form
 
     private readonly ComboBox _autoOff = new() { Width = 120, DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly CheckBox _scheduleEnabled = new() { Text = "요일 스케줄 사용", AutoSize = true };
+    private readonly CheckBox _lockOnAutoStop = new() { Text = "자동 종료 시 화면 잠금", AutoSize = true };
     private readonly DateTimePicker _workStart = new() { Format = DateTimePickerFormat.Time, ShowUpDown = true, Width = 100 };
     private readonly DateTimePicker _workEnd = new() { Format = DateTimePickerFormat.Time, ShowUpDown = true, Width = 100 };
     private readonly CheckBox[] _workDays = new CheckBox[7];
@@ -104,6 +105,7 @@ public sealed class SettingsForm : Form
         _showDate.Checked = current.ShowDate;
 
         _scheduleEnabled.Checked = current.ScheduleEnabled;
+        _lockOnAutoStop.Checked = current.LockOnAutoStop;
         var today = DateTime.Today;
         _workStart.Value = today.AddMinutes(Math.Clamp(current.WorkStartMinutes, 0, 1439));
         _workEnd.Value = today.AddMinutes(Math.Clamp(current.WorkEndMinutes, 0, 1439));
@@ -174,6 +176,7 @@ public sealed class SettingsForm : Form
         }
         layout.Controls.Add(new Label { Text = "근무 요일", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 11);
         layout.Controls.Add(daysGrid, 1, 11);
+        layout.Controls.Add(_lockOnAutoStop, 1, 12);
 
         // 버튼 행 — 루트 마지막 행, 두 열 span, 오른쪽 정렬
         var buttons = new FlowLayoutPanel
@@ -230,12 +233,12 @@ public sealed class SettingsForm : Form
         var centerGroup = new GroupBox { Text = "덮개 중앙 표시", AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Fill };
         centerGroup.Controls.Add(centerGrid);
 
-        // GroupBox at root row 12 (replaces old row-12 _showClock and row-13 덮개 메시지)
-        layout.Controls.Add(centerGroup, 0, 12);
+        // GroupBox at root row 13 (row 12 now holds 자동 종료 시 화면 잠금 toggle)
+        layout.Controls.Add(centerGroup, 0, 13);
         layout.SetColumnSpan(centerGroup, 2);
 
-        // buttons at root row 13 (was 14)
-        layout.Controls.Add(buttons, 0, 13);
+        // buttons at root row 14
+        layout.Controls.Add(buttons, 0, 14);
         layout.SetColumnSpan(buttons, 2);
 
         Controls.Add(layout);
@@ -259,6 +262,7 @@ public sealed class SettingsForm : Form
             RunAtStartup = _runAtStartup.Checked,
             AutoOffMinutes = AutoOffPresets[_autoOff.SelectedIndex].Minutes,
             ScheduleEnabled = _scheduleEnabled.Checked,
+            LockOnAutoStop = _lockOnAutoStop.Checked,
             WorkStartMinutes = startMin,
             WorkEndMinutes = endMin,
             WorkDays = Array.ConvertAll(_workDays, cb => cb.Checked),

@@ -33,7 +33,7 @@ public sealed class TrayAppContext : ApplicationContext
         _keepAwake = new KeepAwake(
             new Win32InputSender(),
             flags => NativeMethods.SetThreadExecutionState(flags));
-        _overlay = new OverlayManager(OnDismissed);
+        _overlay = new OverlayManager(OnDismissed, () => NativeMethods.LockWorkStation());
 
         StartupRegistration.Apply(_settings.RunAtStartup, Application.ExecutablePath);
 
