@@ -54,6 +54,10 @@ public static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+
     [StructLayout(LayoutKind.Sequential)]
     public struct INPUT
     {
@@ -76,5 +80,33 @@ public static class NativeMethods
         public uint dwFlags;
         public uint time;
         public IntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LASTINPUTINFO
+    {
+        public uint cbSize;
+        public uint dwTime;
+    }
+}
+
+public static class Win32IdleTime
+{
+    // Milliseconds since the last user input (keyboard/mouse), as a TimeSpan.
+    public static TimeSpan Get()
+    {
+        var info = new NativeMethods.LASTINPUTINFO
+        {
+            cbSize = (uint)Marshal.SizeOf<NativeMethods.LASTINPUTINFO>()
+        };
+        if (!NativeMethods.GetLastInputInfo(ref info))
+            return TimeSpan.Zero;
+
+        // dwTime is a 32-bit tick value. Subtract against the low 32 bits of
+        // TickCount64 with unsigned wrap so the delta is correct across the
+        // uint boundary; TickCount64 avoids the 49.7-day 32-bit overall wrap.
+        uint now = unchecked((uint)Environment.TickCount64);
+        uint idleMs = unchecked(now - info.dwTime);
+        return TimeSpan.FromMilliseconds(idleMs);
     }
 }
