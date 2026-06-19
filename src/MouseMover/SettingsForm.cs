@@ -14,6 +14,18 @@ public sealed class SettingsForm : Form
     private readonly CheckBox _runAtStartup = new() { Text = "Windows 시작 시 자동 실행", AutoSize = true };
     private int _labelColorArgb;
 
+    private readonly ComboBox _autoOff = new() { Width = 120, DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly CheckBox _scheduleEnabled = new() { Text = "요일 스케줄 사용", AutoSize = true };
+    private readonly DateTimePicker _workStart = new() { Format = DateTimePickerFormat.Time, ShowUpDown = true, Width = 100 };
+    private readonly DateTimePicker _workEnd = new() { Format = DateTimePickerFormat.Time, ShowUpDown = true, Width = 100 };
+    private readonly CheckBox[] _workDays = new CheckBox[7];
+
+    private static readonly (string Label, int Minutes)[] AutoOffPresets =
+    {
+        ("없음", 0), ("30분", 30), ("1시간", 60), ("2시간", 120), ("4시간", 240)
+    };
+    private static readonly string[] DayNames = { "일", "월", "화", "수", "목", "금", "토" };
+
     public Settings Result { get; private set; }
 
     public SettingsForm(Settings current)
@@ -25,7 +37,7 @@ public sealed class SettingsForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         MaximizeBox = false;
         MinimizeBox = false;
-        ClientSize = new Size(360, 300);
+        ClientSize = new Size(380, 440);
 
         _interval.Value = Math.Clamp(current.JiggleSeconds, 5, 600);
         _statusText.Text = current.StatusText;
@@ -45,6 +57,25 @@ public sealed class SettingsForm : Form
             }
         };
         _colorButton.BackColor = Color.FromArgb(_labelColorArgb);
+
+        foreach (var p in AutoOffPresets) _autoOff.Items.Add(p.Label);
+        int presetIndex = Array.FindIndex(AutoOffPresets, p => p.Minutes == current.AutoOffMinutes);
+        _autoOff.SelectedIndex = presetIndex >= 0 ? presetIndex : 0;
+
+        _scheduleEnabled.Checked = current.ScheduleEnabled;
+        var today = DateTime.Today;
+        _workStart.Value = today.AddMinutes(Math.Clamp(current.WorkStartMinutes, 0, 1439));
+        _workEnd.Value = today.AddMinutes(Math.Clamp(current.WorkEndMinutes, 0, 1439));
+
+        for (int i = 0; i < 7; i++)
+        {
+            _workDays[i] = new CheckBox
+            {
+                Text = DayNames[i],
+                AutoSize = true,
+                Checked = i < current.WorkDays.Length && current.WorkDays[i]
+            };
+        }
 
         var ok = new Button { Text = "확인", DialogResult = DialogResult.OK, Width = 80 };
         var cancel = new Button { Text = "취소", DialogResult = DialogResult.Cancel, Width = 80 };
@@ -71,6 +102,19 @@ public sealed class SettingsForm : Form
         layout.Controls.Add(_colorButton, 1, 5);
         layout.Controls.Add(_runAtStartup, 1, 6);
 
+        layout.Controls.Add(new Label { Text = "자동 종료", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 7);
+        layout.Controls.Add(_autoOff, 1, 7);
+        layout.Controls.Add(_scheduleEnabled, 1, 8);
+        layout.Controls.Add(new Label { Text = "근무 시작", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 9);
+        layout.Controls.Add(_workStart, 1, 9);
+        layout.Controls.Add(new Label { Text = "근무 종료", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 10);
+        layout.Controls.Add(_workEnd, 1, 10);
+
+        var daysPanel = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false };
+        foreach (var cb in _workDays) daysPanel.Controls.Add(cb);
+        layout.Controls.Add(new Label { Text = "근무 요일", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 11);
+        layout.Controls.Add(daysPanel, 1, 11);
+
         var buttons = new FlowLayoutPanel
         {
             Dock = DockStyle.Bottom,
@@ -87,6 +131,11 @@ public sealed class SettingsForm : Form
 
     private void Commit()
     {
+        int startMin = _workStart.Value.Hour * 60 + _workStart.Value.Minute;
+        startMin = Math.Min(startMin, 1438);
+        int endMin = _workEnd.Value.Hour * 60 + _workEnd.Value.Minute;
+        if (endMin <= startMin) endMin = Math.Min(startMin + 1, 1439);
+
         Result = new Settings
         {
             JiggleSeconds = (int)_interval.Value,
@@ -95,7 +144,12 @@ public sealed class SettingsForm : Form
             ShowDismissHint = _showDismissHint.Checked,
             LabelFontSize = (float)_fontSize.Value,
             LabelColorArgb = _labelColorArgb,
-            RunAtStartup = _runAtStartup.Checked
+            RunAtStartup = _runAtStartup.Checked,
+            AutoOffMinutes = AutoOffPresets[_autoOff.SelectedIndex].Minutes,
+            ScheduleEnabled = _scheduleEnabled.Checked,
+            WorkStartMinutes = startMin,
+            WorkEndMinutes = endMin,
+            WorkDays = Array.ConvertAll(_workDays, cb => cb.Checked)
         };
     }
 }
