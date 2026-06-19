@@ -87,6 +87,21 @@ public class SettingsTests
     }
 
     [Fact]
+    public void LockOnAutoStop_defaults_off()
+    {
+        var s = new Settings();
+        Assert.False(s.LockOnAutoStop);
+    }
+
+    [Fact]
+    public void LockOnAutoStop_round_trips()
+    {
+        var s = new Settings { LockOnAutoStop = true };
+        var back = Settings.FromJson(s.ToJson());
+        Assert.True(back.LockOnAutoStop);
+    }
+
+    [Fact]
     public void Display_option_defaults()
     {
         var s = new Settings();
