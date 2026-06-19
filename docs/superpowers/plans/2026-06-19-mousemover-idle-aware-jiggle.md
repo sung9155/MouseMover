@@ -238,7 +238,7 @@ Expected: PASS — all `KeepAwakeTests` green (the 3 updated/new tick tests plus
 - [ ] **Step 5: Run the full test suite**
 
 Run: `dotnet test`
-Expected: PASS — all tests green (the prior 28 with `Tick_jiggles_once` replaced by 3 tick tests → 30 total).
+Expected: PASS — all tests green. Net test count rises by 2 (the single `Tick_jiggles_once` is replaced by 3 tick tests). Do not assert an absolute total; confirm zero failures.
 
 - [ ] **Step 6: Update the README**
 
