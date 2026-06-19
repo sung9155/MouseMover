@@ -14,6 +14,9 @@ public sealed class TrayAppContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _keepAwakeOnlyTimer;
     private readonly Icon _icon;
     private readonly bool _ownsIcon;
+    private readonly ActiveIconFrames _activeFrames;
+    private readonly System.Windows.Forms.Timer _animTimer;
+    private int _animIndex;
     private bool _disposed;
     private bool _keepAwakeOnlyActive;
     private Settings _settings = Settings.Load();
@@ -75,6 +78,38 @@ public sealed class TrayAppContext : ApplicationContext
             ContextMenuStrip = menu
         };
         _tray.DoubleClick += (_, _) => StartCover();
+
+        _activeFrames = new ActiveIconFrames(_icon);
+        _animTimer = new System.Windows.Forms.Timer { Interval = 400 };
+        _animTimer.Tick += OnAnimTick;
+    }
+
+    // 활성 중 트레이 아이콘 맥동 — 프레임 순환.
+    private void OnAnimTick(object? sender, EventArgs e)
+    {
+        if (_activeFrames.Frames.Count == 0) return;
+        _animIndex = (_animIndex + 1) % _activeFrames.Frames.Count;
+        _tray.Icon = _activeFrames.Frames[_animIndex];
+    }
+
+    // 활성(덮개 또는 절전방지 전용)이면 애니메이션, 아니면 base 아이콘.
+    private void UpdateTrayIcon()
+    {
+        bool active = _overlay.IsActive || _keepAwakeOnlyActive;
+        if (active && _activeFrames.Frames.Count > 0)
+        {
+            if (!_animTimer.Enabled)
+            {
+                _animIndex = 0;
+                _tray.Icon = _activeFrames.Frames[0];
+                _animTimer.Start();
+            }
+        }
+        else
+        {
+            _animTimer.Stop();
+            _tray.Icon = _icon;
+        }
     }
 
     // "덮개 시작" — 저장된 설정 그대로 사용(타이머 없음).
@@ -160,6 +195,7 @@ public sealed class TrayAppContext : ApplicationContext
         _autoOffMenu.Enabled = idle;
         _keepAwakeOnlyItem.Enabled = !_overlay.IsActive;
         _keepAwakeOnlyItem.Text = _keepAwakeOnlyActive ? "절전방지 중지" : "절전방지만 시작";
+        UpdateTrayIcon();
     }
 
     private void OpenSettings()
@@ -180,6 +216,10 @@ public sealed class TrayAppContext : ApplicationContext
             _disposed = true;
             _keepAwakeOnlyTimer.Stop();
             _keepAwakeOnlyTimer.Dispose();
+            _animTimer.Stop();
+            _animTimer.Dispose();
+            _tray.Icon = _icon;          // 프레임 해제 전 base로 복귀(댕글링 참조 방지)
+            _activeFrames.Dispose();
             _overlay.Stop();
             _keepAwake.Dispose();
             _tray.Visible = false;
