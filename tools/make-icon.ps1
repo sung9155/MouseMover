@@ -1,33 +1,33 @@
 Add-Type -AssemblyName System.Drawing
 
+# 밝고 꽉 찬 아이콘: 밝은 파랑 풀블리드 원 + 크고 굵은 흰 마우스(중앙).
+$BgColor = [System.Drawing.Color]::FromArgb(255, 30, 144, 255)   # 밝은 파랑 (DodgerBlue)
+
 function New-Frame([int]$size) {
     $bmp = New-Object System.Drawing.Bitmap($size, $size)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
     $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
     $g.Clear([System.Drawing.Color]::Transparent)
 
-    # Background circle (navy)
-    $bg = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 30, 41, 82))
-    $g.FillEllipse($bg, 1, 1, $size - 2, $size - 2)
+    # 배경 원 — 프레임을 꽉 채움(풀블리드)
+    $bg = New-Object System.Drawing.SolidBrush($BgColor)
+    $g.FillEllipse($bg, 0, 0, $size, $size)
     $bg.Dispose()
 
     $s = $size / 32.0
-    # Mouse body (white ellipse approximating rounded rect)
+    # 마우스 본체 — 크고 중앙 (흰색). 세로로 프레임을 많이 채움.
+    $mw = 14.0 * $s
+    $mh = 19.0 * $s
+    $mx = ($size - $mw) / 2.0
+    $my = 6.5 * $s
     $mouse = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
-    $g.FillEllipse($mouse, [int](10*$s), [int](9*$s), [int](9*$s), [int](14*$s))
+    $g.FillEllipse($mouse, $mx, $my, $mw, $mh)
     $mouse.Dispose()
-    # Mouse divider line
-    $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255,30,41,82), [single](1.2*$s))
-    $g.DrawLine($pen, [single](14.5*$s), [single](9*$s), [single](14.5*$s), [single](15*$s))
-    $pen.Dispose()
 
-    # Crescent moon (yellow) -- upper right
-    $moon = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 255, 209, 102))
-    $g.FillEllipse($moon, [int](19*$s), [int](4*$s), [int](9*$s), [int](9*$s))
-    $moon.Dispose()
-    $cut = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 30, 41, 82))
-    $g.FillEllipse($cut, [int](21.5*$s), [int](3*$s), [int](8*$s), [int](8*$s))
-    $cut.Dispose()
+    # 마우스 구분선 — 배경색으로 윗부분을 갈라 버튼 느낌
+    $pen = New-Object System.Drawing.Pen($BgColor, [single](1.6 * $s))
+    $g.DrawLine($pen, [single]($size / 2.0), [single]($my + 1.0 * $s), [single]($size / 2.0), [single]($my + 8.0 * $s))
+    $pen.Dispose()
 
     $g.Dispose()
     return $bmp

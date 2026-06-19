@@ -1,14 +1,15 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 
 namespace MouseMover;
 
-// base 아이콘 위에 맥동하는 초록 "활성" 점을 덧그려 트레이 애니메이션 프레임을 만든다.
+// base 아이콘 전체 밝기를 맥동시켜 트레이 애니메이션 프레임을 만든다.
 // 활성(절전방지 동작) 중에만 사용. 비활성에서는 호출자가 base 아이콘으로 되돌린다.
 public sealed class ActiveIconFrames : IDisposable
 {
-    // 점 크기/투명도 맥동 단계 (루프: 작게 → 크게 → 작게).
-    private static readonly double[] PulseScale = { 0.5, 0.75, 1.0, 0.75 };
+    // 전체 밝기 배수 (루프: 보통 → 밝게 → 보통).
+    private static readonly float[] PulseBrightness = { 1.0f, 1.35f, 1.75f, 1.35f };
 
     private readonly List<Icon> _frames = new();
 
@@ -16,14 +17,15 @@ public sealed class ActiveIconFrames : IDisposable
 
     public ActiveIconFrames(Icon baseIcon, int size = 32)
     {
-        foreach (var scale in PulseScale)
+        using var baseBmp = baseIcon.ToBitmap();
+        foreach (var brightness in PulseBrightness)
         {
-            var icon = BuildFrame(baseIcon, size, scale);
+            var icon = BuildFrame(baseBmp, size, brightness);
             if (icon is not null) _frames.Add(icon);
         }
     }
 
-    private static Icon? BuildFrame(Icon baseIcon, int size, double scale)
+    private static Icon? BuildFrame(Bitmap baseBmp, int size, float brightness)
     {
         try
         {
@@ -31,21 +33,22 @@ public sealed class ActiveIconFrames : IDisposable
             using (var g = Graphics.FromImage(bmp))
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 g.Clear(Color.Transparent);
-                g.DrawIcon(baseIcon, new Rectangle(0, 0, size, size));
 
-                float margin = size * 0.06f;
-                float maxR = size * 0.26f;
-                float cx = size - margin - maxR;   // 우하단 점 중심
-                float cy = size - margin - maxR;
-                float r = (float)(maxR * scale);
-                int alpha = (int)(255 * (0.45 + 0.55 * scale));
-
-                var rect = new RectangleF(cx - r, cy - r, 2 * r, 2 * r);
-                using var fill = new SolidBrush(Color.FromArgb(alpha, 60, 200, 90));
-                g.FillEllipse(fill, rect);
-                using var outline = new Pen(Color.FromArgb(alpha, 20, 70, 30), Math.Max(1f, size / 24f));
-                g.DrawEllipse(outline, rect);
+                // RGB만 배수(알파 유지) → 보이는 픽셀만 밝아지고 투명 영역은 그대로.
+                var cm = new ColorMatrix(new[]
+                {
+                    new[] { brightness, 0f, 0f, 0f, 0f },
+                    new[] { 0f, brightness, 0f, 0f, 0f },
+                    new[] { 0f, 0f, brightness, 0f, 0f },
+                    new[] { 0f, 0f, 0f, 1f, 0f },
+                    new[] { 0f, 0f, 0f, 0f, 1f },
+                });
+                using var ia = new ImageAttributes();
+                ia.SetColorMatrix(cm);
+                g.DrawImage(baseBmp, new Rectangle(0, 0, size, size),
+                    0, 0, baseBmp.Width, baseBmp.Height, GraphicsUnit.Pixel, ia);
             }
 
             IntPtr h = bmp.GetHicon();
