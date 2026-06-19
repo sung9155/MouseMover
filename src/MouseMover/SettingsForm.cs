@@ -23,6 +23,18 @@ public sealed class SettingsForm : Form
     private readonly CheckBox _showClock = new() { Text = "덮개 중앙 시계 표시", AutoSize = true };
     private readonly TextBox _centerMessage = new() { Width = 220 };
 
+    // Step 1: new center-display control fields
+    private readonly RadioButton _clockDigital = new() { Text = "디지털", AutoSize = true, Checked = true };
+    private readonly RadioButton _clockAnalog = new() { Text = "아날로그", AutoSize = true };
+    private readonly NumericUpDown _clockSize = new() { Minimum = 24, Maximum = 200, Width = 80 };
+    private readonly NumericUpDown _messageSize = new() { Minimum = 12, Maximum = 120, Width = 80 };
+    private readonly Button _centerColorButton = new() { Text = "중앙 색...", Width = 90 };
+    private readonly CheckBox _centerBold = new() { Text = "굵게", AutoSize = true };
+    private readonly CheckBox _clockSeconds = new() { Text = "초 표시", AutoSize = true };
+    private readonly CheckBox _clock12Hour = new() { Text = "오전/오후", AutoSize = true };
+    private readonly CheckBox _showDate = new() { Text = "날짜 표시", AutoSize = true };
+    private int _centerColorArgb;
+
     private static readonly (string Label, int Minutes)[] AutoOffPresets =
     {
         ("없음", 0), ("30분", 30), ("1시간", 60), ("2시간", 120), ("4시간", 240)
@@ -69,6 +81,27 @@ public sealed class SettingsForm : Form
 
         _showClock.Checked = current.ShowClock;
         _centerMessage.Text = current.CenterMessage;
+
+        // Step 2: initialize new center-display controls from current
+        _clockAnalog.Checked = current.AnalogClock;
+        _clockDigital.Checked = !current.AnalogClock;
+        _clockSize.Value = Math.Clamp(current.ClockFontSize, 24, 200);
+        _messageSize.Value = Math.Clamp(current.MessageFontSize, 12, 120);
+        _centerColorArgb = current.CenterColorArgb;
+        _centerColorButton.BackColor = Color.FromArgb(_centerColorArgb);
+        _centerColorButton.Click += (_, _) =>
+        {
+            using var dlg = new ColorDialog { Color = Color.FromArgb(_centerColorArgb) };
+            if (dlg.ShowDialog(this) == DialogResult.OK)
+            {
+                _centerColorArgb = dlg.Color.ToArgb();
+                _centerColorButton.BackColor = dlg.Color;
+            }
+        };
+        _centerBold.Checked = current.CenterBold;
+        _clockSeconds.Checked = current.ClockSeconds;
+        _clock12Hour.Checked = current.Clock12Hour;
+        _showDate.Checked = current.ShowDate;
 
         _scheduleEnabled.Checked = current.ScheduleEnabled;
         var today = DateTime.Today;
@@ -153,11 +186,56 @@ public sealed class SettingsForm : Form
         };
         buttons.Controls.Add(cancel);
         buttons.Controls.Add(ok);
-        layout.Controls.Add(_showClock, 1, 12);
-        layout.Controls.Add(new Label { Text = "덮개 메시지", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 13);
-        layout.Controls.Add(_centerMessage, 1, 13);
 
-        layout.Controls.Add(buttons, 0, 14);
+        // Step 3: build the 덮개 중앙 표시 GroupBox with a nested 2-col TableLayoutPanel
+        var centerGrid = new TableLayoutPanel
+        {
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2, GrowStyle = TableLayoutPanelGrowStyle.AddRows, Dock = DockStyle.Fill
+        };
+        centerGrid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        centerGrid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+        // row 0: _showClock spanning both columns
+        centerGrid.Controls.Add(_showClock, 0, 0); centerGrid.SetColumnSpan(_showClock, 2);
+
+        // row 1: 시계 스타일 label + radio buttons flow
+        var styleFlow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0) };
+        styleFlow.Controls.Add(_clockDigital); styleFlow.Controls.Add(_clockAnalog);
+        centerGrid.Controls.Add(new Label { Text = "시계 스타일", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 1);
+        centerGrid.Controls.Add(styleFlow, 1, 1);
+
+        // row 2: 시계 크기
+        centerGrid.Controls.Add(new Label { Text = "시계 크기", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 2);
+        centerGrid.Controls.Add(_clockSize, 1, 2);
+
+        // row 3: 메시지 크기
+        centerGrid.Controls.Add(new Label { Text = "메시지 크기", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 3);
+        centerGrid.Controls.Add(_messageSize, 1, 3);
+
+        // row 4: 중앙 색
+        centerGrid.Controls.Add(new Label { Text = "중앙 색", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 4);
+        centerGrid.Controls.Add(_centerColorButton, 1, 4);
+
+        // row 5: options flow (bold/seconds/12h/date), spanning both columns
+        var optFlow = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Margin = new Padding(0) };
+        optFlow.Controls.Add(_centerBold); optFlow.Controls.Add(_clockSeconds);
+        optFlow.Controls.Add(_clock12Hour); optFlow.Controls.Add(_showDate);
+        centerGrid.Controls.Add(optFlow, 0, 5); centerGrid.SetColumnSpan(optFlow, 2);
+
+        // row 6: 덮개 메시지 label + text box
+        centerGrid.Controls.Add(new Label { Text = "덮개 메시지", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 6);
+        centerGrid.Controls.Add(_centerMessage, 1, 6);
+
+        var centerGroup = new GroupBox { Text = "덮개 중앙 표시", AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Fill };
+        centerGroup.Controls.Add(centerGrid);
+
+        // GroupBox at root row 12 (replaces old row-12 _showClock and row-13 덮개 메시지)
+        layout.Controls.Add(centerGroup, 0, 12);
+        layout.SetColumnSpan(centerGroup, 2);
+
+        // buttons at root row 13 (was 14)
+        layout.Controls.Add(buttons, 0, 13);
         layout.SetColumnSpan(buttons, 2);
 
         Controls.Add(layout);
@@ -185,7 +263,16 @@ public sealed class SettingsForm : Form
             WorkEndMinutes = endMin,
             WorkDays = Array.ConvertAll(_workDays, cb => cb.Checked),
             ShowClock = _showClock.Checked,
-            CenterMessage = _centerMessage.Text
+            CenterMessage = _centerMessage.Text,
+            // Step 4: new center-display fields
+            AnalogClock = _clockAnalog.Checked,
+            ClockFontSize = (int)_clockSize.Value,
+            MessageFontSize = (int)_messageSize.Value,
+            CenterColorArgb = _centerColorArgb,
+            CenterBold = _centerBold.Checked,
+            ClockSeconds = _clockSeconds.Checked,
+            Clock12Hour = _clock12Hour.Checked,
+            ShowDate = _showDate.Checked,
         };
     }
 }
