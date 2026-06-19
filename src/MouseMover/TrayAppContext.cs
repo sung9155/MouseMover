@@ -9,6 +9,8 @@ public sealed class TrayAppContext : ApplicationContext
     private readonly KeepAwake _keepAwake;
     private readonly OverlayManager _overlay;
     private readonly ToolStripMenuItem _startItem;
+    private readonly Icon _icon;
+    private bool _disposed;
 
     public TrayAppContext()
     {
@@ -25,9 +27,10 @@ public sealed class TrayAppContext : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(exitItem);
 
+        _icon = LoadIcon();
         _tray = new NotifyIcon
         {
-            Icon = LoadIcon(),
+            Icon = _icon,
             Text = "MouseMover — 절전방지/화면가리기",
             Visible = true,
             ContextMenuStrip = menu
@@ -55,12 +58,23 @@ public sealed class TrayAppContext : ApplicationContext
         _startItem.Enabled = true;
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing && !_disposed)
+        {
+            _disposed = true;
+            _overlay.Stop();
+            _keepAwake.Dispose();
+            _tray.Visible = false;
+            _tray.Dispose();
+            _icon.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+
     private void ExitApp()
     {
-        _overlay.Stop();
-        _keepAwake.Dispose();
-        _tray.Visible = false;
-        _tray.Dispose();
+        Dispose();      // ApplicationContext.Dispose() -> Dispose(true), cleans up once via the guard
         ExitThread();
     }
 }
