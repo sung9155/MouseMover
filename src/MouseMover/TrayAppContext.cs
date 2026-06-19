@@ -10,6 +10,7 @@ public sealed class TrayAppContext : ApplicationContext
     private readonly OverlayManager _overlay;
     private readonly ToolStripMenuItem _startItem;
     private readonly Icon _icon;
+    private readonly bool _ownsIcon;
     private bool _disposed;
     private Settings _settings = Settings.Load();
 
@@ -33,7 +34,9 @@ public sealed class TrayAppContext : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(exitItem);
 
-        _icon = LoadIcon();
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "app.ico");
+        if (File.Exists(iconPath)) { _icon = new Icon(iconPath); _ownsIcon = true; }
+        else { _icon = SystemIcons.Application; _ownsIcon = false; }
         _tray = new NotifyIcon
         {
             Icon = _icon,
@@ -42,12 +45,6 @@ public sealed class TrayAppContext : ApplicationContext
             ContextMenuStrip = menu
         };
         _tray.DoubleClick += (_, _) => StartCover();
-    }
-
-    private static Icon LoadIcon()
-    {
-        var path = Path.Combine(AppContext.BaseDirectory, "app.ico");
-        return File.Exists(path) ? new Icon(path) : SystemIcons.Application;
     }
 
     private void StartCover()
@@ -85,7 +82,7 @@ public sealed class TrayAppContext : ApplicationContext
             _keepAwake.Dispose();
             _tray.Visible = false;
             _tray.Dispose();
-            _icon.Dispose();
+            if (_ownsIcon) _icon.Dispose();
         }
         base.Dispose(disposing);
     }

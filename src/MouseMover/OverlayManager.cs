@@ -44,7 +44,6 @@ public sealed class OverlayManager
         foreach (var form in _forms)
         {
             form.Close();
-            form.Dispose();
         }
         _forms.Clear();
         IsActive = false;
