@@ -11,6 +11,10 @@ public sealed class OverlayForm : Form
     private readonly Settings _settings;
     private readonly DateTime _startLocal;
     private bool _dismissed;
+    private readonly Label? _clockLabel;
+    private readonly Label? _messageLabel;
+    private readonly Font? _clockFont;
+    private readonly Font? _messageFont;
 
     public OverlayForm(Rectangle bounds, Settings settings, DateTime startLocal, Action onDismiss)
     {
@@ -38,8 +42,34 @@ public sealed class OverlayForm : Form
             TextAlign = ContentAlignment.BottomRight
         };
         Controls.Add(_label);
+        if (_settings.ShowClock)
+        {
+            _clockFont = new Font("Segoe UI", 64f, FontStyle.Bold);
+            _clockLabel = new Label
+            {
+                AutoSize = true,
+                ForeColor = Color.FromArgb(_settings.LabelColorArgb),
+                BackColor = Color.Black,
+                Font = _clockFont,
+                Text = DateTime.Now.ToString("HH:mm")
+            };
+            Controls.Add(_clockLabel);
+        }
+        if (!string.IsNullOrEmpty(_settings.CenterMessage))
+        {
+            _messageFont = new Font("Segoe UI", 24f, FontStyle.Regular);
+            _messageLabel = new Label
+            {
+                AutoSize = true,
+                ForeColor = Color.FromArgb(_settings.LabelColorArgb),
+                BackColor = Color.Black,
+                Font = _messageFont,
+                Text = _settings.CenterMessage
+            };
+            Controls.Add(_messageLabel);
+        }
         UpdateElapsed(TimeSpan.Zero);
-        Shown += (_, _) => PositionLabel();
+        Shown += (_, _) => { PositionLabel(); PositionCenter(); };
 
         KeyDown += (_, _) => Dismiss();
         MouseDown += (_, _) => Dismiss();
@@ -52,6 +82,11 @@ public sealed class OverlayForm : Form
         if (_settings.ShowDismissHint) lines.Add(DismissHint(elapsed));
         _label.Text = string.Join("\n", lines);
         PositionLabel();
+        if (_clockLabel is not null)
+        {
+            _clockLabel.Text = DateTime.Now.ToString("HH:mm");
+            PositionCenter();
+        }
     }
 
     private string DismissHint(TimeSpan elapsed)
@@ -75,6 +110,19 @@ public sealed class OverlayForm : Form
             ClientSize.Height - _label.Height - 24);
     }
 
+    private void PositionCenter()
+    {
+        if (ClientSize.IsEmpty) return;
+        int cy = (int)(ClientSize.Height * 0.40);
+        if (_clockLabel is not null)
+            _clockLabel.Location = new Point((ClientSize.Width - _clockLabel.Width) / 2, cy);
+        if (_messageLabel is not null)
+        {
+            int my = _clockLabel is not null ? _clockLabel.Bottom + 12 : cy;
+            _messageLabel.Location = new Point((ClientSize.Width - _messageLabel.Width) / 2, my);
+        }
+    }
+
     private void Dismiss()
     {
         if (_dismissed) return;
@@ -84,9 +132,12 @@ public sealed class OverlayForm : Form
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) {
+        if (disposing)
+        {
             Cursor.Show();
             _font.Dispose();
+            _clockFont?.Dispose();
+            _messageFont?.Dispose();
         }
         base.Dispose(disposing);
     }
