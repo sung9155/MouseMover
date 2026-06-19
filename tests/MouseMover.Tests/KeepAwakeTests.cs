@@ -39,10 +39,46 @@ public class KeepAwakeTests
     }
 
     [Fact]
-    public void Tick_jiggles_once()
+    public void Tick_jiggles_when_idle_at_period()
     {
         var sender = new FakeSender();
-        var ka = new KeepAwake(sender, _ => { });
+        var ka = new KeepAwake(sender, _ => { }, 45, () => TimeSpan.FromSeconds(45));
+        ka.Start();
+
+        ka.TickForTest();
+
+        Assert.Equal(1, sender.JiggleCount);
+    }
+
+    [Fact]
+    public void Tick_skips_when_user_active()
+    {
+        var sender = new FakeSender();
+        var ka = new KeepAwake(sender, _ => { }, 45, () => TimeSpan.Zero);
+        ka.Start();
+
+        ka.TickForTest();
+
+        Assert.Equal(0, sender.JiggleCount);
+    }
+
+    [Fact]
+    public void Tick_skips_when_idle_just_under_period()
+    {
+        var sender = new FakeSender();
+        var ka = new KeepAwake(sender, _ => { }, 45, () => TimeSpan.FromSeconds(44));
+        ka.Start();
+
+        ka.TickForTest();
+
+        Assert.Equal(0, sender.JiggleCount);
+    }
+
+    [Fact]
+    public void Tick_jiggles_when_idle_just_past_period()
+    {
+        var sender = new FakeSender();
+        var ka = new KeepAwake(sender, _ => { }, 30, () => TimeSpan.FromSeconds(31));
         ka.Start();
 
         ka.TickForTest();
