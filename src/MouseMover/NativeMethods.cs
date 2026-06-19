@@ -45,7 +45,7 @@ public static class NativeMethods
     public const uint ES_SYSTEM_REQUIRED = 0x00000001;
     public const uint ES_DISPLAY_REQUIRED = 0x00000002;
 
-    public const int INPUT_MOUSE = 0;
+    public const uint INPUT_MOUSE = 0;
     public const uint MOUSEEVENTF_MOVE = 0x0001;
 
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -57,7 +57,7 @@ public static class NativeMethods
     [StructLayout(LayoutKind.Sequential)]
     public struct INPUT
     {
-        public int type;
+        public uint type;
         public InputUnion U;
     }
 
