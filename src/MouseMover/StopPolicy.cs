@@ -21,6 +21,24 @@ public static class StopPolicy
         return false;
     }
 
+    public static DateTime? NextAutoStop(Settings s, DateTime startLocal)
+    {
+        DateTime? next = null;
+
+        if (s.AutoOffMinutes > 0)
+            next = startLocal.AddMinutes(s.AutoOffMinutes);
+
+        if (s.ScheduleEnabled &&
+            s.WorkStartMinutes < s.WorkEndMinutes &&
+            IsWorkTime(s, startLocal))
+        {
+            var workEnd = startLocal.Date.AddMinutes(s.WorkEndMinutes);
+            if (next is null || workEnd < next) next = workEnd;
+        }
+
+        return next;
+    }
+
     public static bool IsWorkTime(Settings s, DateTime t)
     {
         if (s.WorkStartMinutes >= s.WorkEndMinutes) return false;

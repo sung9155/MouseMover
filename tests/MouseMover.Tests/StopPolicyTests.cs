@@ -105,4 +105,61 @@ public class StopPolicyTests
         s.WorkDays = new[] { true, true }; // shorter than 7
         Assert.False(StopPolicy.IsWorkTime(s, Mon(10, 0)));
     }
+
+    // --- NextAutoStop ---
+    [Fact]
+    public void NextAutoStop_autooff_only_returns_start_plus_minutes()
+    {
+        var s = new Settings { AutoOffMinutes = 90 };
+        var start = Mon(10, 0);
+        Assert.Equal(start.AddMinutes(90), StopPolicy.NextAutoStop(s, start));
+    }
+
+    [Fact]
+    public void NextAutoStop_schedule_only_returns_work_end_today()
+    {
+        var s = WorkdaySchedule(); // 09:00~18:00, 월~금
+        var start = Mon(10, 0);
+        Assert.Equal(Mon(18, 0), StopPolicy.NextAutoStop(s, start));
+    }
+
+    [Fact]
+    public void NextAutoStop_both_returns_earlier()
+    {
+        var s = WorkdaySchedule();
+        s.AutoOffMinutes = 30;          // 10:00 + 30분 = 10:30 (퇴근 18:00보다 이름)
+        var start = Mon(10, 0);
+        Assert.Equal(Mon(10, 30), StopPolicy.NextAutoStop(s, start));
+    }
+
+    [Fact]
+    public void NextAutoStop_both_returns_schedule_when_earlier()
+    {
+        var s = WorkdaySchedule();
+        s.AutoOffMinutes = 600;         // 10:00 + 600분 = 20:00 (퇴근 18:00이 이름)
+        var start = Mon(10, 0);
+        Assert.Equal(Mon(18, 0), StopPolicy.NextAutoStop(s, start));
+    }
+
+    [Fact]
+    public void NextAutoStop_none_returns_null()
+    {
+        var s = new Settings(); // AutoOffMinutes=0, ScheduleEnabled=false
+        Assert.Null(StopPolicy.NextAutoStop(s, Mon(10, 0)));
+    }
+
+    [Fact]
+    public void NextAutoStop_schedule_started_outside_work_returns_null()
+    {
+        var s = WorkdaySchedule();      // 자동종료 없음, 스케줄만
+        Assert.Null(StopPolicy.NextAutoStop(s, Mon(20, 0))); // 비근무 시작
+    }
+
+    [Fact]
+    public void NextAutoStop_autooff_zero_with_schedule_returns_schedule()
+    {
+        var s = WorkdaySchedule();
+        s.AutoOffMinutes = 0;
+        Assert.Equal(Mon(18, 0), StopPolicy.NextAutoStop(s, Mon(9, 30)));
+    }
 }
