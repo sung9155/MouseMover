@@ -7,6 +7,7 @@ public sealed class OverlayForm : Form
 {
     private readonly Action _onDismiss;
     private readonly Label _label;
+    private readonly Font _font;
     private bool _dismissed;
 
     public OverlayForm(Rectangle bounds, Action onDismiss)
@@ -23,12 +24,13 @@ public sealed class OverlayForm : Form
         KeyPreview = true;
         DoubleBuffered = true;
 
+        _font = new Font("Segoe UI", 11f, FontStyle.Regular);
         _label = new Label
         {
             AutoSize = true,
             ForeColor = Color.FromArgb(160, 160, 160),
             BackColor = Color.Black,
-            Font = new Font("Segoe UI", 11f, FontStyle.Regular),
+            Font = _font,
             TextAlign = ContentAlignment.BottomRight
         };
         Controls.Add(_label);
@@ -50,6 +52,7 @@ public sealed class OverlayForm : Form
 
     private void PositionLabel()
     {
+        if (ClientSize.IsEmpty) return;
         // 우하단에서 24px 여백
         _label.Location = new Point(
             ClientSize.Width - _label.Width - 24,
@@ -65,7 +68,10 @@ public sealed class OverlayForm : Form
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) Cursor.Show();
+        if (disposing) {
+            Cursor.Show();
+            _font.Dispose();
+        }
         base.Dispose(disposing);
     }
 }
