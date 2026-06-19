@@ -9,20 +9,25 @@ function New-Frame([int]$size) {
     # Background circle (navy)
     $bg = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 30, 41, 82))
     $g.FillEllipse($bg, 1, 1, $size - 2, $size - 2)
+    $bg.Dispose()
 
     $s = $size / 32.0
     # Mouse body (white ellipse approximating rounded rect)
     $mouse = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
     $g.FillEllipse($mouse, [int](10*$s), [int](9*$s), [int](9*$s), [int](14*$s))
+    $mouse.Dispose()
     # Mouse divider line
     $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255,30,41,82), [single](1.2*$s))
     $g.DrawLine($pen, [single](14.5*$s), [single](9*$s), [single](14.5*$s), [single](15*$s))
+    $pen.Dispose()
 
     # Crescent moon (yellow) -- upper right
     $moon = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 255, 209, 102))
     $g.FillEllipse($moon, [int](19*$s), [int](4*$s), [int](9*$s), [int](9*$s))
+    $moon.Dispose()
     $cut = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 30, 41, 82))
     $g.FillEllipse($cut, [int](21.5*$s), [int](3*$s), [int](8*$s), [int](8*$s))
+    $cut.Dispose()
 
     $g.Dispose()
     return $bmp
@@ -34,12 +39,14 @@ $frames = @(16, 32) | ForEach-Object { New-Frame $_ }
 $pngs = $frames | ForEach-Object {
     $ms = New-Object System.IO.MemoryStream
     $_.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
-    ,$ms.ToArray()
+    $data = $ms.ToArray()
+    $ms.Dispose()
+    $_.Dispose()
+    ,$data
 }
 
 # Resolve output path robustly (no Resolve-Path on non-existent file)
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$outDir = [System.IO.Path]::GetFullPath((Join-Path $scriptDir '..\src\MouseMover'))
+$outDir = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\src\MouseMover'))
 $out = Join-Path $outDir 'app.ico'
 
 $fs = [System.IO.File]::Open($out, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write)
