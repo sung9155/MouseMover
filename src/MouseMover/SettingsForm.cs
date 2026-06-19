@@ -142,7 +142,7 @@ public sealed class SettingsForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             FlowDirection = FlowDirection.RightToLeft,
-            Dock = DockStyle.Fill,
+            Anchor = AnchorStyles.Right,
             Margin = new Padding(0, 10, 0, 0)
         };
         buttons.Controls.Add(cancel);
