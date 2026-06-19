@@ -11,6 +11,11 @@ public sealed class Settings
     public float LabelFontSize { get; set; } = 11f;
     public int LabelColorArgb { get; set; } = unchecked((int)0xFFA0A0A0);
     public bool RunAtStartup { get; set; }
+    public int AutoOffMinutes { get; set; }
+    public bool ScheduleEnabled { get; set; }
+    public int WorkStartMinutes { get; set; } = 540;
+    public int WorkEndMinutes { get; set; } = 1080;
+    public bool[] WorkDays { get; set; } = { false, true, true, true, true, true, false };
 
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
 
