@@ -9,4 +9,7 @@
     <AssemblyName>MouseMover</AssemblyName>
     <RootNamespace>MouseMover</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <None Update="app.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
