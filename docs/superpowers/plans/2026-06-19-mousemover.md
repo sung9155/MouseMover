@@ -4,13 +4,13 @@
 
 **Goal:** Windows 트레이 유틸리티 — 마우스 지글 + Win32 API로 절전 방지, 모든 모니터를 검은 전체화면으로 가리고 우하단에 상태 표기, 아무 키/클릭으로 해제.
 
-**Architecture:** C# WinForms(.NET 8) 트레이 앱. `TrayAppContext`가 `KeepAwake`(절전방지)와 `OverlayManager`(다중 모니터 검은 폼)를 조율. P/Invoke는 `NativeMethods`에 격리. SendInput을 인터페이스(`IInputSender`)로 추상화해 핵심 로직을 단위 테스트.
+**Architecture:** C# WinForms(.NET 9) 트레이 앱. `TrayAppContext`가 `KeepAwake`(절전방지)와 `OverlayManager`(다중 모니터 검은 폼)를 조율. P/Invoke는 `NativeMethods`에 격리. SendInput을 인터페이스(`IInputSender`)로 추상화해 핵심 로직을 단위 테스트.
 
-**Tech Stack:** C# / .NET 8 (`net8.0-windows`), WinForms, xUnit (테스트), PowerShell + System.Drawing (아이콘 생성).
+**Tech Stack:** C# / .NET 9 (`net9.0-windows`), WinForms, xUnit (테스트), PowerShell + System.Drawing (아이콘 생성).
 
 ## Global Constraints
 
-- Target framework: `net8.0-windows`, `<UseWindowsForms>true</UseWindowsForms>`.
+- Target framework: `net9.0-windows`, `<UseWindowsForms>true</UseWindowsForms>`.
 - 단일 인스턴스: named `Mutex`로 중복 실행 차단.
 - 절전방지 = 마우스 지글 + `SetThreadExecutionState` 둘 다. 실행상태 플래그는 중지/종료 시 반드시 복원.
 - 지글 간격 상수 45초.
@@ -62,7 +62,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net9.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -100,7 +100,7 @@ internal static class Program
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net9.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -966,7 +966,7 @@ PC 절전 모드 방지 + 화면 가리기 Windows 트레이 유틸리티.
 \`\`\`
 dotnet publish src/MouseMover -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
 \`\`\`
-산출물: \`src/MouseMover/bin/Release/net8.0-windows/win-x64/publish/MouseMover.exe\`
+산출물: \`src/MouseMover/bin/Release/net9.0-windows/win-x64/publish/MouseMover.exe\`
 
 ## 개발
 - 테스트: \`dotnet test\`
