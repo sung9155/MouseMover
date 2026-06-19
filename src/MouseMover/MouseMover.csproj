@@ -5,7 +5,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- ApplicationIcon은 Task 2에서 추가 -->
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <AssemblyName>MouseMover</AssemblyName>
     <RootNamespace>MouseMover</RootNamespace>
   </PropertyGroup>
